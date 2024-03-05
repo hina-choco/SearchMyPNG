@@ -1,9 +1,7 @@
 import modules.scripts as scripts
 from modules import script_callbacks
 import gradio as gr
-import os
 from PIL import Image as PILImage
-import sqlite3
 from sqlalchemy import create_engine, Column, Integer, String
 from sqlalchemy.ext.declarative import declarative_base
 from sqlalchemy.orm import sessionmaker
