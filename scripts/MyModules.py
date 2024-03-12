@@ -94,16 +94,25 @@ def display_metadata(checkbox, textSearch):
     ret = [[""]*3]
     if (checkbox):
         #全部登録
+        head: bool = True
         for user in users:
             rest = user.dir.replace(Topdir, '')
-            ret.append([rest,user.fname,user.prompt])
+            #ret.insert( count, [rest,user.fname,user.prompt])
+            if head:
+                ret[0] = [rest,user.fname,user.prompt]
+                head = False
+            else:
+                ret.append([rest,user.fname,user.prompt])
     else :
-        dir = ""
+        dir: str = ""
         #同じディレクトリは登録しない
         for user in users:
             if dir != user.dir :
                 rest = user.dir.replace(Topdir, '')
-                ret.append([rest,user.fname,user.prompt])
+                if dir == "":
+                    ret[0] = [rest,user.fname,user.prompt]
+                else:
+                    ret.append([rest,user.fname,user.prompt])
                 dir = user.dir
 
     # セッションを閉じる。
