@@ -97,7 +97,6 @@ def display_metadata(checkbox, textSearch):
         head: bool = True
         for user in users:
             rest = user.dir.replace(Topdir, '')
-            #ret.insert( count, [rest,user.fname,user.prompt])
             if head:
                 ret[0] = [rest,user.fname,user.prompt]
                 head = False
