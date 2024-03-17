@@ -2,11 +2,10 @@ import modules.scripts as scripts
 from modules import script_callbacks
 import gradio as gr
 from PIL import Image as PILImage
-from sqlalchemy import create_engine, Column, Integer, String
+from sqlalchemy import create_engine, Column, Integer, String, asc
 from sqlalchemy.ext.declarative import declarative_base
 from sqlalchemy.orm import sessionmaker
-
-Topdir = 'D:\\Picture\\'
+from sqlalchemy.sql import text
 
 def on_ui_tabs():
     with gr.Blocks(analytics_enabled=False) as ui_component:
@@ -26,9 +25,9 @@ def on_ui_tabs():
                 label="result list",
                 show_label = False,
                 interactive = False,
-                headers=["dir", "fname", "prompt"],
-                datatype=["str", "str", "str"],
-                col_count=3, height=480,
+                headers=["dir", "fname", "prompt", "topdir"],
+                datatype=["str", "str", "str", "str"],
+                col_count=4, height=480,
                 order_by=['dir', 'fname'],
                 order_directions=['ascending', 'ascending'],
             )
@@ -43,7 +42,7 @@ def on_ui_tabs():
             )
 
         btn.click(
-            display_metadata,
+            search_db,
             inputs = [checkbox, textSearch],
             outputs = [listdata],
         )
@@ -53,16 +52,18 @@ def on_ui_tabs():
             #outputs = [gallery],
             outputs = [gallery, promptText],
         )
+
         return [(ui_component, "SearchMyPNG", "SearchMyPNG_tab")]
 
 def display_image(selected_index: gr.SelectData, listdata):
-    fname = listdata.iloc[selected_index.index[0]].fname
-    dir = listdata.iloc[selected_index.index[0]].dir
+    fname: String = listdata.iloc[selected_index.index[0]].fname
+    dir: String = listdata.iloc[selected_index.index[0]].dir
     if fname == "" or dir == "" :
         return
 
-    prompt = listdata.iloc[selected_index.index[0]].prompt
-    file_path = Topdir + dir + '/' + fname
+    prompt: String = listdata.iloc[selected_index.index[0]].prompt
+    topdir: String = listdata.iloc[selected_index.index[0]].topdir
+    file_path: String = topdir + dir + '/' + fname
     try :
         image = PILImage.open(file_path)
     except Exception as e:
@@ -70,18 +71,18 @@ def display_image(selected_index: gr.SelectData, listdata):
     return image, prompt
 
 
-def display_metadata(checkbox, textSearch):
+def search_db(checkbox, textSearch):
     dbname = 'sqlite:///extensions/SearchMyPNG/SDImages.db'
 
     # ベースクラスを作成する。 
     Base = declarative_base()
     # ユーザクラスを定義する。 
-    class User(Base):     
-        __tablename__ = 'images'      
-        id = Column(Integer, primary_key=True)
-        fname = Column(String)
-        dir = Column(String)
-        prompt = Column(String)
+    class CImage(Base):     
+        __tablename__ = 'images'
+        id: Integer = Column(Integer, primary_key=True)
+        fname: String = Column(String)
+        dir: String = Column(String)
+        prompt: String = Column(String)
     # エンジンを生成する 
     engine = create_engine(dbname)  
     # セッションを作成する。 
@@ -89,30 +90,33 @@ def display_metadata(checkbox, textSearch):
     session = Session()
 
     # Selectクエリを実行する。 
+    result = session.execute( text('select topdir from env') )
+    envs = list( result )
+    Topdir = envs[0].topdir
+
     sql = f'\'%{textSearch}%\''
-    users = session.query(User).filter(User.prompt.like(sql))
-    ret = [[""]*3]
+    cimages = session.query(CImage).filter(CImage.prompt.like(sql)).order_by(CImage.dir.asc(), CImage.fname.asc())
+    ret = [[]]
     if (checkbox):
         #全部登録
-        head: bool = True
-        for user in users:
-            rest = user.dir.replace(Topdir, '')
-            if head:
-                ret[0] = [rest,user.fname,user.prompt]
-                head = False
-            else:
-                ret.append([rest,user.fname,user.prompt])
+        limages = list(cimages)
+        count = len(limages)
+        if count > 0 :
+            cimage = limages[0]
+            ret[0] = [cimage.dir,cimage.fname,cimage.prompt,Topdir]
+            for i in range(1,len(limages)):
+                cimage = limages[i]
+                ret.append([cimage.dir,cimage.fname,cimage.prompt,Topdir])
     else :
         dir: str = ""
         #同じディレクトリは登録しない
-        for user in users:
-            if dir != user.dir :
-                rest = user.dir.replace(Topdir, '')
+        for cimage in cimages:
+            if dir != cimage.dir :
                 if dir == "":
-                    ret[0] = [rest,user.fname,user.prompt]
+                    ret[0] = [cimage.dir,cimage.fname,cimage.prompt,Topdir]
                 else:
-                    ret.append([rest,user.fname,user.prompt])
-                dir = user.dir
+                    ret.append([cimage.dir,cimage.fname,cimage.prompt,Topdir])
+                dir = cimage.dir
 
     # セッションを閉じる。
     session.close()
