@@ -120,6 +120,7 @@ def search_db(checkbox, textSearch):
 
     # セッションを閉じる。
     session.close()
+    engine.dispose()
     return ret
 
 script_callbacks.on_ui_tabs(on_ui_tabs)
