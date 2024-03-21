@@ -58,7 +58,7 @@ def on_ui_tabs():
 def display_image(selected_index: gr.SelectData, listdata):
     fname: String = listdata.iloc[selected_index.index[0]].fname
     dir: String = listdata.iloc[selected_index.index[0]].dir
-    if fname == "" or dir == "" :
+    if fname == "" :
         return
 
     prompt: String = listdata.iloc[selected_index.index[0]].prompt
