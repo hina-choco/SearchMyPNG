@@ -2,7 +2,7 @@
 
 outputディレクトリ以下にあるPNGファイルをデータベース化し、キーワード検索を行なってファイル一覧のリストを表示します。
 
-![スクリーンショット 2024-03-24 212038](https://github.com/hina-choco/SearchMyPNG/assets/162294996/e670abd8-5875-4aaa-a35d-2a1019b16709)
+![ss2024-03-24 212038](https://github.com/hina-choco/SearchMyPNG/assets/162294996/799503ad-3175-4a62-aff2-5b6ad7e4f06b)
 
 #DataBaseの作成
 
