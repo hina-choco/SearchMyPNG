@@ -17,66 +17,6 @@ with open('config.json') as f:
     di = json.load(f)
 topdir = (di['outdir_samples'])  # deep insider：キーを指定して値を取得
 
-def on_ui_tabs():
-    with gr.Blocks(analytics_enabled=False) as ui_component:
-        with gr.Row():
-            with gr.Column():
-                textSearch = gr.Textbox(
-                    label="Search word", interactive=True, lines=1
-                )
-                checkbox = gr.Checkbox(
-                    False,
-                    label="All images"
-                )
-            search_btn = gr.Button(
-                "Search", scale=1
-            )
-            with gr.Column():
-                dbini = gr.Button(
-                    "Create Database", scale=1
-                )
-                dbupd = gr.Button(
-                    "Update Database", scale=1
-                )
-        with gr.Row():
-            listdata = gr.DataFrame(
-                label="result list",
-                show_label = False,
-                interactive = False,
-                headers=["dir", "fname", "prompt", "topdir"],
-                datatype=["str", "str", "str", "str"],
-                col_count=4, height=400,
-                order_by=['dir', 'fname'],
-                order_directions=['ascending', 'ascending'],
-            )
-            gallery = gr.Image(
-                label="image",
-                show_label=False,
-                type='filepath', height=480,
-            )
-        with gr.Row():
-            promptText = gr.TextArea(
-                label="Prompt", interactive=False, lines=10
-            )
-
-        dbini.click(
-            create_db
-        )
-        dbupd.click(
-            update_db
-        )
-        search_btn.click(
-            search_db,
-            inputs = [checkbox, textSearch],
-            outputs = [listdata],
-        )
-        listdata.select(
-            display_image,
-            inputs = [listdata],
-            outputs = [gallery, promptText],
-        )
-
-    return [(ui_component, "SearchMyPNG", "SearchMyPNG_tab")]
 
 def display_image(selected_index: gr.SelectData, listdata):
     fname: String = listdata.iloc[selected_index.index[0]].fname
@@ -114,12 +54,12 @@ def get_metadata(file_path: str):
         info = "Error"
     return info
 
-def write_db(mode: int):
+def write_db(mode: int, progress):
     dbname = 'sqlite:///extensions/SearchMyPNG/SDImages.db'
 
     try :
         timestamp_db = os.path.getctime('extensions/SearchMyPNG/SDImages.db')
-        s = time.strftime('%Y-%m-%d %H:%M:%S', time.localtime(timestamp_db))
+        #s = time.strftime('%Y-%m-%d %H:%M:%S', time.localtime(timestamp_db))
         #print( "db "+s )
     except Exception as e:
         mode = MODE_INIT
@@ -164,10 +104,9 @@ def write_db(mode: int):
             session.commit()
 
     count = 0
+    countall = 0
     if mode == MODE_INIT :
-        countall = 0
         for root, dirs, files in os.walk(topdir):
-            subdir = root.replace(topdir, '')
             for file in files:
                 if file.lower().endswith('.png'):
                     countall += 1
@@ -185,6 +124,7 @@ def write_db(mode: int):
                     session.add(record)
                     count += 1
                     percent = int( count/countall * 100 )
+                    progress( percent/100, desc=f"{countall} records." )
                     if (percent % 10) == 0: 
                         if percent > dispper:
                             print( f"{percent}% complete" )
@@ -193,44 +133,63 @@ def write_db(mode: int):
         print(f"write {count} records.")
     else :
         for root, dirs, files in os.walk(topdir):
-            subdir = root.replace(topdir, '')
             timestamp = os.path.getctime(root)
             if timestamp_db > timestamp : continue
-
-            s = time.strftime('%Y-%m-%d %H:%M:%S', time.localtime(timestamp))
-            print( "Update "+subdir+" "+s )
-            sql = f"DELETE from images where dir like '{subdir}';"
-            session.execute( text(sql) )
             for file in files:
                 if file.lower().endswith('.png'):
-                    pngfile = os.path.join(root, file)
-                    prompt = get_metadata(pngfile)
-                    record = CImage(fname=file, dir=subdir, prompt=f"\'{prompt}\'")
-                    session.add(record)
-                    count += 1
-        session.commit()
-        print(f"write {count} records.")
+                    countall += 1
+        print( f"All:{countall}")
+
+        if countall > 0 :
+            for root, dirs, files in os.walk(topdir):
+                timestamp = os.path.getctime(root)
+                if timestamp_db > timestamp : continue
+
+                s = time.strftime('%Y-%m-%d %H:%M:%S', time.localtime(timestamp))
+                subdir = root.replace(topdir, '')
+                print( "Update "+subdir+" "+s )
+                sql = f"DELETE from images where dir like '{subdir}';"
+                session.execute( text(sql) )
+                for file in files:
+                    if file.lower().endswith('.png'):
+                        pngfile = os.path.join(root, file)
+                        prompt = get_metadata(pngfile)
+                        record = CImage(fname=file, dir=subdir, prompt=f"\'{prompt}\'")
+                        session.add(record)
+                        count += 1
+                        percent = int( count/countall * 100 )
+                        progress( percent/100, desc=f"{countall} directories." )
+            session.commit()
+            print(f"write {count} records.")
+        else :
+            print("update none.")
 
     # セッションを閉じる。
     session.close()
     engine.dispose()
-    return
+    return count
 
-def create_db():
+def create_db(progress=gr.Progress()):
+    progress(0, desc="Starting")
     print(
         "Building Database ... This can take a while, please check the progress in the terminal."
     )
-    write_db( MODE_INIT )
-    print( "Done.")
-    return
+    count = write_db( MODE_INIT, progress )
+    msg = f"Database create done. {count} records."
+    print( msg )
+    progress(100, msg)
+    return ""
 
-def update_db():
+def update_db(progress=gr.Progress()):
+    progress(0, desc="Starting")
     print(
         "Building Database ... This can take a while, please check the progress in the terminal."
     )
-    write_db( MODE_UPDATE )
-    print( "Done.")
-    return
+    count = write_db( MODE_UPDATE, progress )
+    msg = f"Database create done. {count} records."
+    print( msg )
+    progress(100, msg)
+    return ""
 
 def search_db(checkbox, textSearch):
     dbname = 'sqlite:///extensions/SearchMyPNG/SDImages.db'
@@ -253,7 +212,7 @@ def search_db(checkbox, textSearch):
         #全部登録
         limages = list(cimages)
         count = len(limages)
-        print( f"find {count} records" )
+        retmsg = f"found {count} records."
         if count > 0 :
             ret = [[]]*count
             for i in range(0,count):
@@ -271,11 +230,71 @@ def search_db(checkbox, textSearch):
                     ret.append([cimage.dir,cimage.fname,cimage.prompt,Topdir])
                 count += 1
                 dir = cimage.dir
-        print( f"find {count} directories" )
+        retmsg = f"found {count} directories."
 
+    print( retmsg )
     # セッションを閉じる。
     session.close()
     engine.dispose()
     return ret
+
+def on_ui_tabs():
+    with gr.Blocks(analytics_enabled=False) as ui_component:
+        with gr.Row():
+            with gr.Column():
+                textSearch = gr.Textbox(
+                    label="Search word", interactive=True, lines=1
+                )
+                checkbox = gr.Checkbox(
+                    False,
+                    label="All images"
+                )
+            search_btn = gr.Button( "Search", scale=1 )
+            with gr.Column():
+                dbini = gr.Button(
+                    "Create Database", scale=1
+                )
+                dbupd = gr.Button(
+                    "Update Database", scale=1
+                )
+        with gr.Row():
+            listdata = gr.DataFrame(
+                label="result list",
+                show_label = False,
+                interactive = False,
+                headers=["dir", "fname", "prompt", "topdir"],
+                datatype=["str", "str", "str", "str"],
+                col_count=4, height=400,
+                order_by=['dir', 'fname'],
+                order_directions=['ascending', 'ascending'],
+            )
+            gallery = gr.Image(
+                label="image",
+                show_label=False,
+                type='filepath', height=480,
+            )
+        with gr.Row():
+            promptText = gr.TextArea(
+                label="Prompt", interactive=False, lines=10
+            )
+
+        dbini.click(
+            create_db, outputs=textSearch
+        )
+        dbupd.click(
+            update_db, outputs=textSearch
+        )
+        search_btn.click(
+            search_db,
+            inputs = [checkbox, textSearch],
+            outputs = listdata,
+        )
+        listdata.select(
+            display_image,
+            inputs = [listdata],
+            outputs = [gallery, promptText],
+        )
+
+    return [(ui_component, "SearchMyPNG", "SearchMyPNG_tab")]
 
 script_callbacks.on_ui_tabs(on_ui_tabs)
