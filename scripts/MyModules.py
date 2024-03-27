@@ -47,7 +47,15 @@ def get_metadata(file_path: str):
         info = ""
         for key, value in metadata.items():
             if key == 'workflow' :
-                info = f"ComfyUI {key}"
+                info = f"ComfyUI {key}\n"
+                data = json.loads( value )
+                for d in data['nodes']:
+                    type = d["type"]
+                    if "widgets_values" not in d.keys(): continue
+                    if type=="CLIPTextEncode" or \
+                        type=="CheckpointLoaderSimple" or \
+                        type=="KSampler" or type=="VAELoader":
+                        info += f"{d['widgets_values']}\n"
             else :
                 info = f"{value}"
     except Exception as e:
