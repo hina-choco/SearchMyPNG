@@ -16,7 +16,8 @@ MODE_UPDATE = 1
 with open('config.json') as f:
     di = json.load(f)
 topdir = (di['outdir_samples'])  # deep insider：キーを指定して値を取得
-
+if topdir == "" : # Default
+    topdir = os.getcwd()
 
 def display_image(selected_index: gr.SelectData, listdata):
     fname: String = listdata.iloc[selected_index.index[0]].fname
