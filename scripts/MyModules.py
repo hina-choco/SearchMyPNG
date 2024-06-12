@@ -13,11 +13,17 @@ import time
 MODE_INIT = 0
 MODE_UPDATE = 1
 
-with open('config.json') as f:
-    di = json.load(f)
-topdir = (di['outdir_samples'])  # deep insider：キーを指定して値を取得
+topdir = ""
+try:
+    with open('config.json') as f:
+        di = json.load(f)
+    topdir = (di['outdir_samples'])  # deep insider：キーを指定して値を取得
+except FileNotFoundError as e:
+    print(e)
+
 if topdir == "" : # Default
-    topdir = os.getcwd()
+    topdir = os.getcwd() + '\\outputs'
+print( f"SearchMyPNG: topdir is {topdir}")
 
 def display_image(selected_index: gr.SelectData, listdata):
     fname: String = listdata.iloc[selected_index.index[0]].fname
@@ -226,7 +232,7 @@ def search_db(checkbox, textSearch):
             ret = [[]]*count
             for i in range(0,count):
                 cimage = limages[i]
-                ret[i] = [cimage.dir,cimage.fname,cimage.prompt,Topdir]
+                ret[i] = [cimage.dir,cimage.fname,cimage.prompt[1:],Topdir]
     else :
         dir: str = ""
         count = 0
@@ -234,9 +240,9 @@ def search_db(checkbox, textSearch):
         for cimage in cimages:
             if dir != cimage.dir :
                 if dir == "":
-                    ret[0] = [cimage.dir,cimage.fname,cimage.prompt,Topdir]
+                    ret[0] = [cimage.dir,cimage.fname,cimage.prompt[1:],Topdir]
                 else:
-                    ret.append([cimage.dir,cimage.fname,cimage.prompt,Topdir])
+                    ret.append([cimage.dir,cimage.fname,cimage.prompt[1:],Topdir])
                 count += 1
                 dir = cimage.dir
         retmsg = f"found {count} directories."
