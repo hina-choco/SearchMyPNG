@@ -2,7 +2,8 @@
 
 outputディレクトリ以下にあるPNGファイルをデータベース化し、キーワード検索を行なってファイル一覧のリストを表示します。
 
-![ss2024-03-24 212038](https://github.com/hina-choco/SearchMyPNG/assets/162294996/799503ad-3175-4a62-aff2-5b6ad7e4f06b)
+![スクリーンショット 2024-06-17 212958](https://github.com/hina-choco/SearchMyPNG/assets/162294996/a9543dea-0090-4941-b731-555a709d9665)
+![スクリーンショット 2024-06-17 213229](https://github.com/hina-choco/SearchMyPNG/assets/162294996/36472986-e2d5-48bc-8c65-42aef4de5950)
 
 #DataBaseの作成
 
@@ -16,3 +17,6 @@ Ver1.01 変更点
 
 ・プロンプトの先頭に'が付かないようにした
 
+Ver1.02 変更点
+
+・Send to txt2img でプロンプト等をtxt2imgタブに送れるようにした
