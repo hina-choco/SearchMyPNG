@@ -9,6 +9,8 @@ from sqlalchemy.orm import sessionmaker
 from sqlalchemy.sql import text
 import json
 import time
+import modules.infotext_utils as parameters_copypaste
+from modules.ui_gradio_extensions import reload_javascript
 
 MODE_INIT = 0
 MODE_UPDATE = 1
@@ -24,6 +26,10 @@ except FileNotFoundError as e:
 if topdir == "" : # Default
     topdir = os.getcwd() + '\\outputs'
 print( f"SearchMyPNG: topdir is {topdir}")
+
+import modules.txt2img
+#reload_javascript()
+parameters_copypaste.reset()
 
 def display_image(selected_index: gr.SelectData, listdata):
     fname: String = listdata.iloc[selected_index.index[0]].fname
@@ -260,11 +266,12 @@ def on_ui_tabs():
                 textSearch = gr.Textbox(
                     label="Search word", interactive=True, lines=1
                 )
-                checkbox = gr.Checkbox(
-                    False,
-                    label="All images"
-                )
-            search_btn = gr.Button( "Search", scale=1 )
+                with gr.Row():
+                    search_btn = gr.Button( "Search", scale=1 )
+                    checkbox = gr.Checkbox(
+                        False,
+                        label="All images"
+                    )
             with gr.Column():
                 dbini = gr.Button(
                     "Create Database", scale=1
@@ -292,6 +299,14 @@ def on_ui_tabs():
             promptText = gr.TextArea(
                 label="Prompt", interactive=False, lines=10
             )
+        with gr.Row():
+#            buttons = parameters_copypaste.create_buttons(["txt2img", "img2img", "inpaint", "extras"])
+            buttons = parameters_copypaste.create_buttons(["txt2img"])
+
+        for tabname, button in buttons.items():
+            parameters_copypaste.register_paste_params_button(parameters_copypaste.ParamBinding(
+                paste_button=button, tabname=tabname, source_text_component=promptText, source_image_component=None
+                    ))
 
         dbini.click(
             create_db, outputs=textSearch
