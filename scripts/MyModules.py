@@ -238,7 +238,7 @@ def search_db(checkbox, textSearch):
             ret = [[]]*count
             for i in range(0,count):
                 cimage = limages[i]
-                ret[i] = [cimage.dir,cimage.fname,cimage.prompt[1:],Topdir]
+                ret[i] = [cimage.dir,cimage.fname,cimage.prompt.strip("'"),Topdir]
     else :
         dir: str = ""
         count = 0
@@ -246,9 +246,9 @@ def search_db(checkbox, textSearch):
         for cimage in cimages:
             if dir != cimage.dir :
                 if dir == "":
-                    ret[0] = [cimage.dir,cimage.fname,cimage.prompt[1:],Topdir]
+                    ret[0] = [cimage.dir,cimage.fname,cimage.prompt.strip("'"),Topdir]
                 else:
-                    ret.append([cimage.dir,cimage.fname,cimage.prompt[1:],Topdir])
+                    ret.append([cimage.dir,cimage.fname,cimage.prompt.strip("'"),Topdir])
                 count += 1
                 dir = cimage.dir
         retmsg = f"found {count} directories."
