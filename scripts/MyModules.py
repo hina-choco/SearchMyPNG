@@ -215,7 +215,7 @@ def update_db(progress=gr.Progress()):
 def search_db(checkbox, textSearch):
     dbname = 'sqlite:///extensions/SearchMyPNG/SDImages.db'
 
-   # エンジンを生成する 
+    # エンジンを生成する 
     engine = create_engine(dbname)  
     # セッションを作成する。 
     Session = sessionmaker(bind=engine) 
@@ -235,22 +235,24 @@ def search_db(checkbox, textSearch):
         count = len(limages)
         retmsg = f"found {count} records."
         if count > 0 :
-            ret = [[]]*count
+            ret = []  # 空のリストで初期化
             for i in range(0,count):
                 cimage = limages[i]
-                ret[i] = [cimage.dir,cimage.fname,cimage.prompt.strip("'"),Topdir]
+                ret.append([cimage.dir,cimage.fname,cimage.prompt.strip("'"),Topdir])
+        else:
+            ret = [[]]  # 検索結果が0件の場合は空の行を1つ持つリストを返す
     else :
         dir: str = ""
         count = 0
+        ret = []  # 空のリストで初期化
         #同じディレクトリは登録しない
         for cimage in cimages:
             if dir != cimage.dir :
-                if dir == "":
-                    ret[0] = [cimage.dir,cimage.fname,cimage.prompt.strip("'"),Topdir]
-                else:
-                    ret.append([cimage.dir,cimage.fname,cimage.prompt.strip("'"),Topdir])
+                ret.append([cimage.dir,cimage.fname,cimage.prompt.strip("'"),Topdir])
                 count += 1
                 dir = cimage.dir
+        if count == 0:
+            ret = [[]]  # 検索結果が0件の場合は空の行を1つ持つリストを返す
         retmsg = f"found {count} directories."
 
     print( retmsg )
@@ -264,7 +266,8 @@ def on_ui_tabs():
         with gr.Row():
             with gr.Column():
                 textSearch = gr.Textbox(
-                    label="Search word", interactive=True, lines=1
+                    label="Search word", interactive=True, lines=1,
+                    placeholder="Enter search word and press Enter or click Search button"  # 使い方のヒントを追加
                 )
                 with gr.Row():
                     search_btn = gr.Button( "Search", scale=1 )
@@ -286,9 +289,9 @@ def on_ui_tabs():
                 interactive = False,
                 headers=["dir", "fname", "prompt", "topdir"],
                 datatype=["str", "str", "str", "str"],
-                col_count=4, height=400,
-                order_by=['dir', 'fname'],
-                order_directions=['ascending', 'ascending'],
+                col_count=4,
+                row_count=10,  # 最小行数を設定
+                height=400
             )
             gallery = gr.Image(
                 label="image",
@@ -300,8 +303,7 @@ def on_ui_tabs():
                 label="Prompt", interactive=False, lines=10
             )
         with gr.Row():
-#            buttons = parameters_copypaste.create_buttons(["txt2img", "img2img", "inpaint", "extras"])
-            buttons = parameters_copypaste.create_buttons(["txt2img"])
+            buttons = parameters_copypaste.create_buttons(["txt2img", "img2img", "inpaint", "extras"])
 
         for tabname, button in buttons.items():
             parameters_copypaste.register_paste_params_button(parameters_copypaste.ParamBinding(
@@ -314,15 +316,22 @@ def on_ui_tabs():
         dbupd.click(
             update_db, outputs=textSearch
         )
+        # 検索ボタンクリックと検索ワード入力（Enter）で同じ処理を実行
+        search_fn = lambda cb, txt: search_db(cb, txt)
         search_btn.click(
-            search_db,
-            inputs = [checkbox, textSearch],
-            outputs = listdata,
+            search_fn,
+            inputs=[checkbox, textSearch],
+            outputs=listdata,
+        )
+        textSearch.submit(  # Enterキーでの実行を追加
+            search_fn,
+            inputs=[checkbox, textSearch],
+            outputs=listdata,
         )
         listdata.select(
             display_image,
-            inputs = [listdata],
-            outputs = [gallery, promptText],
+            inputs=[listdata],
+            outputs=[gallery, promptText],
         )
 
     return [(ui_component, "SearchMyPNG", "SearchMyPNG_tab")]
